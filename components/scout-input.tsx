@@ -69,7 +69,7 @@ export function ScoutInput({
     const fontSize = parseFloat(computedStyles.getPropertyValue("font-size"));
     ctx.font = `${fontSize * 2}px ${computedStyles.fontFamily}`;
     ctx.fillStyle = "#FFF";
-    ctx.fillText(value, 16, 40);
+    ctx.fillText(value, 0, 35);
 
     const imageData = ctx.getImageData(0, 0, 800, 800);
     const pixelData = imageData.data;
@@ -161,10 +161,12 @@ export function ScoutInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Submit on Enter or Cmd+Enter (Mac) / Ctrl+Enter (Windows)
-    if (e.key === "Enter" && !animating && value) {
+    // Always prevent default for Enter to avoid any visual glitches
+    if (e.key === "Enter") {
       e.preventDefault();
-      formRef.current?.requestSubmit();
+      if (!animating && value) {
+        formRef.current?.requestSubmit();
+      }
     }
   };
 
@@ -207,7 +209,7 @@ export function ScoutInput({
           <div className="relative flex-1">
             <canvas
               className={cn(
-                "absolute pointer-events-none text-base transform scale-50 top-[20%] left-0 origin-top-left filter invert pr-20",
+                "absolute pointer-events-none text-base transform scale-50 top-0 left-0 origin-top-left filter invert pr-20",
                 !animating ? "opacity-0" : "opacity-100",
               )}
               ref={canvasRef}
