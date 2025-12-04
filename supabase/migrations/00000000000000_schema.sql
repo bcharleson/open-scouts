@@ -344,6 +344,7 @@ DECLARE
   anon_key TEXT;
   request_id BIGINT;
   scouts_dispatched INT := 0;
+  has_running_execution BOOLEAN;
 BEGIN
   SELECT decrypted_secret INTO supabase_url
   FROM vault.decrypted_secrets WHERE name = 'project_url';
@@ -361,6 +362,17 @@ BEGIN
     WHERE should_run_scout(frequency, last_run_at, is_active, title, goal, description, location, search_queries)
     LIMIT 20
   LOOP
+    -- Check if this scout already has a running execution
+    SELECT EXISTS(
+      SELECT 1 FROM scout_executions
+      WHERE scout_id = scout_record.id AND status = 'running'
+    ) INTO has_running_execution;
+
+    IF has_running_execution THEN
+      RAISE NOTICE 'Skipping scout % - already has running execution', scout_record.title;
+      CONTINUE;
+    END IF;
+
     SELECT net.http_post(
       url := supabase_url || '/functions/v1/scout-cron?scoutId=' || scout_record.id,
       headers := jsonb_build_object(
@@ -385,9 +397,11 @@ RETURNS void AS $$
 DECLARE
   stuck_count INT;
 BEGIN
+  -- Mark executions as failed if running for more than 15 minutes
+  -- (Agent can have up to 10 loops with 60s timeouts each, so 15 min is a safe upper bound)
   UPDATE scout_executions
-  SET status = 'failed', completed_at = NOW(), error_message = 'Execution timed out after 5 minutes'
-  WHERE status = 'running' AND started_at < NOW() - INTERVAL '5 minutes';
+  SET status = 'failed', completed_at = NOW(), error_message = 'Execution timed out after 15 minutes'
+  WHERE status = 'running' AND started_at < NOW() - INTERVAL '15 minutes';
 
   GET DIAGNOSTICS stuck_count = ROW_COUNT;
 

@@ -53,10 +53,23 @@ export default function ExecutionsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+  const [runningCooldown, setRunningCooldown] = useState(false);
+  const runningCooldownRef = useRef<NodeJS.Timeout | null>(null);
 
   const triggerExecution = useCallback(async () => {
     setTriggering(true);
+    setRunningCooldown(true);
     const startTime = Date.now();
+
+    // Clear any existing cooldown timer
+    if (runningCooldownRef.current) {
+      clearTimeout(runningCooldownRef.current);
+    }
+
+    // Set 10-second running cooldown
+    runningCooldownRef.current = setTimeout(() => {
+      setRunningCooldown(false);
+    }, 10000);
 
     try {
       const response = await fetch("/api/scout/execute", {
@@ -88,6 +101,7 @@ export default function ExecutionsPage() {
         error instanceof Error ? error.message : "Failed to trigger execution";
       alert(message);
       setTriggering(false);
+      // Keep runningCooldown active even on error - user still needs to wait
     }
   }, [scoutId]);
 
@@ -302,7 +316,8 @@ export default function ExecutionsPage() {
     (execution) => execution.status === "running",
   );
   const isOnCooldown = cooldownRemaining > 0;
-  const isButtonDisabled = triggering || hasRunningExecution || isOnCooldown;
+  const isInRunningCooldown = runningCooldown || hasRunningExecution;
+  const isButtonDisabled = triggering || hasRunningExecution || isOnCooldown || runningCooldown;
 
   // Format cooldown remaining as MM:SS
   const formatCooldown = (ms: number): string => {
@@ -385,8 +400,8 @@ export default function ExecutionsPage() {
                 <Button
                   onClick={triggerExecution}
                   disabled={isButtonDisabled}
-                  isLoading={triggering || hasRunningExecution}
-                  loadingLabel={triggering ? "Starting..." : "Running..."}
+                  isLoading={isInRunningCooldown}
+                  loadingLabel="Running Scout"
                   title={
                     isOnCooldown
                       ? `Available in ${formatCooldown(cooldownRemaining)}`
@@ -485,8 +500,8 @@ export default function ExecutionsPage() {
                 triggerExecution();
               }}
               disabled={isButtonDisabled}
-              isLoading={triggering || hasRunningExecution}
-              loadingLabel={triggering ? "Starting..." : "Running..."}
+              isLoading={isInRunningCooldown}
+              loadingLabel="Running Scout"
               className="w-full"
             >
               <Play className="w-16 h-16" />

@@ -73,6 +73,32 @@ serve(async (req) => {
       throw new Error(`Scout ${scoutId} configuration is not complete`);
     }
 
+    // Check if there's already a running execution for this scout
+    const { data: runningExecution } = await supabase
+      .from("scout_executions")
+      .select("id, created_at")
+      .eq("scout_id", scoutId)
+      .eq("status", "running")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (runningExecution) {
+      console.warn(`[scout-cron] Scout ${scoutId} already has a running execution (${runningExecution.id}). Skipping.`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Scout execution already in progress",
+          scoutId: scout.id,
+          runningExecutionId: runningExecution.id,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 409, // Conflict
+        }
+      );
+    }
+
     // Execute the scout
     await executeScoutAgent(scout as Scout, supabase);
 
