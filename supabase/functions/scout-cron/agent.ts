@@ -179,7 +179,7 @@ You are executing an automated scout for: "${scout.title}"
 
 ## Your Task
 Use the configured search queries to find relevant, recent information that matches the scout's goal.
-Be thorough but efficient. You have a maximum of ~10 steps to complete this task.
+Be thorough but efficient. You have a maximum of ~7 steps to complete this task.
 
 **WORKFLOW - Follow this structured approach:**
 1. **Initial Search Phase**: Start by searching using ONLY the configured search queries listed above (one search per query)
@@ -192,7 +192,7 @@ Be thorough but efficient. You have a maximum of ~10 steps to complete this task
 - Do NOT scrape more than 3-5 websites total
 - Do NOT continue searching if you've already found good verified results
 - Do NOT keep searching hoping for better results - report what you found
-- Aim to complete in 6-8 steps total (searches + scrapes + final response)
+- Aim to complete in 5-6 steps total (searches + scrapes + final response)
 
 **CRITICAL - Focus on PRIMARY Information:**
 Prioritize primary sources (announcements, openings, launches, listings) over secondary commentary (reviews, opinions, tutorials).
@@ -263,7 +263,7 @@ You have access to searchWeb and scrapeWebsite tools. Use them intelligently to 
 **Step 4**: Provide your final structured response
 
 CRITICAL LIMITS:
-- Maximum ~10 steps total (you're currently on step 0)
+- Maximum ~7 steps total (you're currently on step 0)
 - Do NOT keep searching indefinitely
 - Once you have verified findings OR confirmed nothing new exists, STOP and respond
 - Efficiency over exhaustiveness - report what you found, don't keep hoping for more
@@ -286,7 +286,7 @@ REMINDER: Write your final response like a NEWS BRIEF. DO NOT mention your proce
 
     let continueLoop = true;
     let loopCount = 0;
-    const maxLoops = 10;
+    const maxLoops = 7; // Reduced from 10 to stay under Firecrawl rate limits (6 req/min)
     let consecutiveErrors = 0;
     const maxConsecutiveErrors = 3;
 

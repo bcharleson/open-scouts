@@ -381,6 +381,12 @@ BEGIN
       CONTINUE;
     END IF;
 
+    -- Wait 60 seconds between dispatches to avoid Firecrawl rate limits (6 req/min)
+    -- Skip delay for the first scout to start immediately
+    IF scouts_dispatched > 0 THEN
+      PERFORM pg_sleep(60);
+    END IF;
+
     SELECT net.http_post(
       url := supabase_url || '/functions/v1/scout-cron?scoutId=' || scout_record.id,
       headers := jsonb_build_object(
@@ -390,6 +396,7 @@ BEGIN
       body := jsonb_build_object('scoutId', scout_record.id)
     ) INTO request_id;
 
+    RAISE NOTICE 'Dispatched scout % (%/%)', scout_record.title, scouts_dispatched + 1, 20;
     scouts_dispatched := scouts_dispatched + 1;
   END LOOP;
 
@@ -405,11 +412,11 @@ RETURNS void AS $$
 DECLARE
   stuck_count INT;
 BEGIN
-  -- Mark executions as failed if running for more than 15 minutes
-  -- (Agent can have up to 10 loops with 60s timeouts each, so 15 min is a safe upper bound)
+  -- Mark executions as failed if running for more than 10 minutes
+  -- (Agent can have up to 7 loops with 60s timeouts each, so 10 min is a safe upper bound)
   UPDATE scout_executions
-  SET status = 'failed', completed_at = NOW(), error_message = 'Execution timed out after 15 minutes'
-  WHERE status = 'running' AND started_at < NOW() - INTERVAL '15 minutes';
+  SET status = 'failed', completed_at = NOW(), error_message = 'Execution timed out after 10 minutes'
+  WHERE status = 'running' AND started_at < NOW() - INTERVAL '10 minutes';
 
   GET DIAGNOSTICS stuck_count = ROW_COUNT;
 
